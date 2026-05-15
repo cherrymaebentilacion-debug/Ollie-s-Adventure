@@ -1,0 +1,402 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ollie's Swapped Adventure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p-blue: #4facfe; --p-purple: #00f2fe; --p-green: #43e97b;
+            --p-gold: #f6d365; --p-red: #ff6b6b; --glass: rgba(255, 255, 255, 0.95);
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Quicksand', sans-serif; overflow: hidden; background: #2c3e50; -webkit-touch-callout: none; -webkit-user-select: none; }
+        
+        .screen { display: none; height: 100vh; width: 100%; flex-direction: column; align-items: center; justify-content: center; background-size: cover; background-position: center; }
+        .active { display: flex; }
+
+        #screen-cover { background-image: url('background1.jpg'); background-color: #1a2a6c; }
+        #screen-menu { background-image: url('background2.jpg'); }
+        #screen-adventure { background-image: url('forest_bg.jpg'); }
+
+        .card { 
+            background: var(--glass); padding: 20px; border-radius: 30px; text-align: center; 
+            width: 85%; max-width: 800px; max-height: 85vh; border: 6px solid white; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow-y: auto; display: flex; flex-direction: column; align-items: center; z-index: 10;
+        }
+        
+        h1 { font-family: 'Fredoka One', cursive; font-size: 2.2rem; color: #2d3436; margin: 10px 0; }
+        .sentence-q { font-size: 1.6rem; font-weight: bold; color: #2d3436; margin: 15px 0; line-height: 1.4; min-height: 50px; }
+
+        .btn { 
+            background: linear-gradient(45deg, var(--p-blue), var(--p-purple)); 
+            color: white; border: none; padding: 15px 20px; border-radius: 40px; 
+            font-family: 'Fredoka One'; font-size: 1.2rem; cursor: pointer; margin: 6px;
+            box-shadow: 0 5px 0 #2980b9; transition: 0.2s; width: 320px; max-width: 95%;
+        }
+
+        /* Grammar Table Styling */
+        .grammar-table { width: 100%; border-collapse: collapse; margin: 15px 0; background: white; border-radius: 15px; overflow: hidden; }
+        .grammar-table th, .grammar-table td { padding: 12px; border: 1px solid #eee; font-size: 1.1rem; }
+        .grammar-table th { background: var(--p-blue); color: white; font-family: 'Fredoka One'; }
+        .sample-box { background: #f9f9f9; padding: 10px; border-radius: 15px; text-align: left; width: 100%; font-size: 1rem; line-height: 1.6; }
+
+        /* Map Nodes */
+        .node-container { position: absolute; display: flex; flex-direction: column; align-items: center; }
+        .node { 
+            width: 90px; height: 90px; border-radius: 50%; display: flex; 
+            align-items: center; justify-content: center; font-family: 'Fredoka One'; cursor: pointer; 
+            border: 5px solid white; font-size: 1rem; color: white; text-shadow: 1px 1px 3px black;
+            background-size: cover; background-position: center; box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+        .score-label { 
+            background: rgba(0,0,0,0.7); color: var(--p-gold); font-family: 'Fredoka One';
+            font-size: 0.8rem; padding: 2px 8px; border-radius: 10px; margin-top: 5px; opacity: 0;
+        }
+        .score-visible { opacity: 1; }
+
+        #node-c1 { top: 15%; left: 40%; }
+        #node-c2 { top: 40%; left: 12%; }
+        #node-c3 { top: 40%; left: 68%; }
+        #node-c4 { top: 72%; left: 40%; }
+        .locked { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
+
+        /* Review Tabs */
+        .tab-bar { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; width: 100%; }
+        .tab-btn { padding: 10px 5px; cursor: pointer; border-radius: 15px; background: #eee; border:none; font-family: 'Fredoka One'; font-size: 0.9rem; flex: 1; }
+        .tab-btn.active-tab { background: var(--p-gold); border: 2px solid white; }
+        .tab-content { display: none; text-align: left; padding: 10px; width: 100%; }
+        .active-content { display: block; }
+        .vocab-line { font-size: 1.3rem; margin: 8px 0; border-bottom: 2px solid #eee; padding-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+
+        /* Victory Overlay */
+        #victory-overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.4); z-index: 2000; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .victory-img { width: 180px; animation: bounce 1s infinite alternate; }
+        @keyframes bounce { from { transform: scale(1); } to { transform: scale(1.15); } }
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1500; }
+
+        #music-btn { position: fixed; top: 15px; right: 15px; z-index: 3000; cursor: pointer; font-size: 2.5rem; }
+        .nav-menu { position: fixed; bottom: 15px; display: none; gap: 10px; z-index: 1000; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 50px; }
+        .nav-btn { background: white; border: none; padding: 8px 15px; border-radius: 20px; font-family: 'Fredoka One'; cursor: pointer; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+    <div id="music-btn" onclick="toggleMusic()">✨</div>
+    <audio id="bg-music" loop><source src="https://assets.mixkit.co/music/preview/mixkit-magical-journey-1327.mp3" type="audio/mpeg"></audio>
+
+    <div id="nav-bar" class="nav-menu">
+        <button class="nav-btn" onclick="showScreen('screen-menu')">Home</button>
+        <button class="nav-btn" onclick="showScreen('screen-review')">Review</button>
+        <button class="nav-btn" onclick="showScreen('screen-adventure')">Map</button>
+    </div>
+
+    <section id="screen-cover" class="screen active">
+        <div class="card">
+            <h1>Ollie's Swapped Adventure</h1>
+            <input type="text" id="player-name" placeholder="Name..." style="padding: 15px; font-size: 1.5rem; border-radius: 15px; border: 3px solid var(--p-blue); width: 80%; text-align:center;">
+            <br><button class="btn" onclick="startGame()">START</button>
+        </div>
+    </section>
+
+    <section id="screen-menu" class="screen">
+        <div class="card">
+            <img src="ollie.png" style="width:140px;">
+            <h1>Hi! I'm Ollie!</h1>
+            <button class="btn" onclick="showScreen('screen-review')">Review Station</button>
+            <button id="task-lock-btn" class="btn" style="background:#8395a7;" onclick="openAdventure()">Tasks 🔒</button>
+        </div>
+    </section>
+
+    <section id="screen-review" class="screen" style="background-color: #f1f2f6;">
+        <div class="card">
+            <h1>Review Station</h1>
+            <div class="tab-bar">
+                <button class="tab-btn active-tab" onclick="switchTab('time')">Time</button>
+                <button class="tab-btn" onclick="switchTab('places')">Places</button>
+                <button class="tab-btn" onclick="switchTab('grammar')">Grammar</button>
+            </div>
+
+            <div id="tab-time" class="tab-content active-content">
+                <div class="vocab-line" onclick="speak('yesterday')">🔊 <b>yesterday</b> (昨天)</div>
+                <div class="vocab-line" onclick="speak('last night')">🔊 <b>last night</b> (昨晚)</div>
+                <div class="vocab-line" onclick="speak('two days ago')">🔊 <b>two days ago</b> (兩天前)</div>
+                <div class="vocab-line" onclick="speak('an hour ago')">🔊 <b>an hour ago</b> (一小時前)</div>
+                <div class="vocab-line" onclick="speak('two hours ago')">🔊 <b>two hours ago</b> (兩小時前)</div>
+            </div>
+
+            <div id="tab-places" class="tab-content">
+                <div class="vocab-line" onclick="speak('museum')">🔊 <b>museum</b> (博物館)</div>
+                <div class="vocab-line" onclick="speak('library')">🔊 <b>library</b> (圖書館)</div>
+                <div class="vocab-line" onclick="speak('coffee shop')">🔊 <b>coffee shop</b> (咖啡廳)</div>
+                <div class="vocab-line" onclick="speak('night market')">🔊 <b>night market</b> (夜市)</div>
+                <div class="vocab-line" onclick="speak('sports center')">🔊 <b>sports center</b> (運動中心)</div>
+            </div>
+
+            <div id="tab-grammar" class="tab-content">
+                <table class="grammar-table">
+                    <tr><th>Subject</th><th>Verb</th></tr>
+                    <tr><td>I / He / She / It</td><td><b>was</b></td></tr>
+                    <tr><td>You / We / They</td><td><b>were</b></td></tr>
+                </table>
+                <div class="sample-box">
+                    <b>Sample Sentences:</b><br>
+                    • <i>He <b>was</b> at the library.</i><br>
+                    • <i>They <b>were</b> at the museum.</i><br>
+                    • <i><b>Was</b> she at the night market?</i><br>
+                    • <i>Where <b>were</b> you yesterday?</i>
+                </div>
+            </div>
+
+            <button class="btn" style="background:var(--p-green); margin-top:15px; width:100%;" onclick="finishReview()">I'm Ready!</button>
+        </div>
+    </section>
+
+    <section id="screen-adventure" class="screen">
+        <div style="width:100%; height:100%; position:relative;">
+            <div id="node-c1" class="node-container">
+                <div id="node1" class="node" style="background-image: url('cloud.png');" onclick="startTask(1)">Task 1</div>
+                <div id="score1" class="score-label">Score: 0/5</div>
+            </div>
+            <div id="node-c2" class="node-container">
+                <div id="node2" class="node locked" style="background-image: url('pond.png');" onclick="startTask(2)">Task 2</div>
+                <div id="score2" class="score-label">Score: 0/5</div>
+            </div>
+            <div id="node-c3" class="node-container">
+                <div id="node3" class="node locked" style="background-image: url('tree.png');" onclick="startTask(3)">Task 3</div>
+                <div id="score3" class="score-label">Score: 0/5</div>
+            </div>
+            <div id="node-c4" class="node-container">
+                <div id="node4" class="node locked" style="background-image: url('island.png');" onclick="startTask(4)">Task 4</div>
+                <div id="score4" class="score-label">Score: 0/5</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="screen-task-intro" class="screen" style="background: rgba(0,0,0,0.8);">
+        <div class="card">
+            <img id="task-intro-img" src="" style="width:180px; margin-bottom: 20px;">
+            <h1 id="task-intro-msg"></h1>
+            <button class="btn" onclick="beginQuiz()">Help Ollie!</button>
+        </div>
+    </section>
+
+    <section id="screen-quiz" class="screen" style="background: white;">
+        <div class="card">
+            <h1 id="quiz-q-num">1/5</h1>
+            <div id="quiz-question-text" class="sentence-q"></div>
+            <button id="listen-btn" class="btn" style="background:var(--p-gold);" onclick="playQuizAudio()">🔊 Listen</button>
+            <div id="quiz-options" style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:10px; width:100%;"></div>
+        </div>
+    </section>
+
+    <section id="screen-score" class="screen" style="background: rgba(0,0,0,0.85);">
+        <div class="card">
+            <h1 id="final-score-text" style="font-size: 4rem; color:var(--p-gold);">0/5</h1>
+            <h2 id="score-msg">Try again!</h2>
+            <button id="score-back-btn" class="btn" onclick="showScreen('screen-adventure')">Back to Map</button>
+            <button id="victory-btn" class="btn" style="display:none; background:var(--p-green);" onclick="showVictory()">TRANSFORM! ✨</button>
+        </div>
+    </section>
+
+    <div id="victory-overlay">
+        <div class="card" style="width: 320px;">
+            <img src="ollie.png" class="victory-img">
+            <h1>We did it!</h1>
+            <p id="victory-text"></p>
+            <button class="btn" style="width: 200px;" onclick="location.reload()">Reset Game</button>
+        </div>
+    </div>
+
+    <script>
+        let state = { name: "", curTask: 0, score: 0, qIdx: 0, reviewDone: false, musicOn: false };
+        
+        const taskData = {
+            1: { type: 'audio', img: 'bird.png', intro: "Oh no! I'm a bird! Help me to become a pookoo again.", questions: [
+                { audio: 'yesterday', options: ['yesterday', 'last night', 'an hour ago'], answer: 'yesterday' },
+                { audio: 'last night', options: ['two hours ago', 'last night', 'two days ago'], answer: 'last night' },
+                { audio: 'two days ago', options: ['two days ago', 'yesterday', 'an hour ago'], answer: 'two days ago' },
+                { audio: 'an hour ago', options: ['last night', 'an hour ago', 'two hours ago'], answer: 'an hour ago' },
+                { audio: 'two hours ago', options: ['two hours ago', 'two days ago', 'yesterday'], answer: 'two hours ago' }
+            ]},
+            2: { type: 'audio', img: 'fish.png', intro: "Oh no! I'm a fish! Help me to become a pookoo again.", questions: [
+                { audio: 'museum', options: ['museum', 'library', 'night market'], answer: 'museum' },
+                { audio: 'library', options: ['coffee shop', 'library', 'sports center'], answer: 'library' },
+                { audio: 'coffee shop', options: ['night market', 'coffee shop', 'museum'], answer: 'coffee shop' },
+                { audio: 'night market', options: ['night market', 'sports center', 'library'], answer: 'night market' },
+                { audio: 'sports center', options: ['coffee shop', 'sports center', 'museum'], answer: 'sports center' }
+            ]},
+            3: { type: 'text', img: 'dzo.png', intro: "Oh no! I'm a Dzo! Help me to become a pookoo again.", questions: [
+                { q: "He ____ at the library yesterday.", options: ['was', 'were'], answer: 'was' },
+                { q: "They ____ at the museum last night.", options: ['was', 'were'], answer: 'were' },
+                { q: "____ he at the sports center an hour ago?", options: ['Was', 'Were'], answer: 'Was' },
+                { q: "We ____ in the coffee shop two hours ago.", options: ['was', 'were'], answer: 'were' },
+                { q: "She ____ at the night market yesterday.", options: ['was', 'were'], answer: 'was' }
+            ]},
+            4: { type: 'text', img: 'dzo.png', intro: "Last task! Help me transform back into a pookoo!", questions: [
+                { q: "Where was he yesterday?", options: ["He was at the library.", "He was at the museum.", "I was at the library."], answer: "He was at the library." },
+                { q: "Were you at the museum last night?", options: ["No, I wasn't.", "No, she wasn't.", "Yes, they were."], answer: "No, I wasn't." },
+                { q: "Where were they two hours ago?", options: ["They were at the sports center.", "They was at the sports center.", "They were at yesterday."], answer: "They were at the sports center." },
+                { q: "Was she at the coffee shop?", options: ["Yes, she was.", "Yes, she were.", "Yes, I was."], answer: "Yes, she was." },
+                { q: "Where was it an hour ago?", options: ["It was at the night market.", "It were at the night market.", "He were at the night market."], answer: "It was at the night market." }
+            ]}
+        };
+
+        function startGame() {
+            state.name = document.getElementById('player-name').value || "Friend";
+            document.getElementById('nav-bar').style.display = 'flex';
+            showScreen('screen-menu');
+        }
+
+        function toggleMusic() {
+            const m = document.getElementById('bg-music');
+            state.musicOn ? m.pause() : m.play().catch(()=>{});
+            state.musicOn = !state.musicOn;
+        }
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-content'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+            document.getElementById('tab-' + id).classList.add('active-content');
+            event.target.classList.add('active-tab');
+        }
+
+        function finishReview() { state.reviewDone = true; document.getElementById('task-lock-btn').innerText = "Tasks"; showScreen('screen-menu'); }
+        function openAdventure() { if(!state.reviewDone) return alert("Review first!"); showScreen('screen-adventure'); }
+
+        function startTask(id) {
+            if(id > 1 && document.getElementById('node'+id).classList.contains('locked')) return;
+            state.curTask = id;
+            document.getElementById('task-intro-img').src = taskData[id].img;
+            document.getElementById('task-intro-msg').innerText = taskData[id].intro;
+            showScreen('screen-task-intro');
+        }
+
+        function beginQuiz() {
+            state.score = 0; state.qIdx = 0;
+            showScreen('screen-quiz');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if(state.qIdx >= 5) return showFinalScore();
+            const data = taskData[state.curTask].questions[state.qIdx];
+            document.getElementById('quiz-q-num').innerText = `${state.qIdx + 1}/5`;
+            const listenBtn = document.getElementById('listen-btn');
+            const qText = document.getElementById('quiz-question-text');
+            
+            if(taskData[state.curTask].type === 'audio') {
+                listenBtn.style.display = "block";
+                qText.innerText = "Listen and choose!";
+                playQuizAudio();
+            } else {
+                listenBtn.style.display = "none";
+                qText.innerText = data.q;
+            }
+
+            const box = document.getElementById('quiz-options');
+            box.innerHTML = "";
+            data.options.forEach(opt => {
+                const b = document.createElement('button');
+                b.className = 'btn';
+                b.innerText = opt;
+                b.onclick = () => {
+                    if(opt.toLowerCase() === data.answer.toLowerCase()) state.score++;
+                    state.qIdx++;
+                    loadQuestion();
+                };
+                box.appendChild(b);
+            });
+        }
+
+        function playQuizAudio() {
+            const text = taskData[state.curTask].questions[state.qIdx].audio;
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
+        }
+
+        function showFinalScore() {
+            document.getElementById('final-score-text').innerText = `${state.score}/5`;
+            const scoreLabel = document.getElementById(`score${state.curTask}`);
+            scoreLabel.innerText = `Score: ${state.score}/5`;
+            scoreLabel.classList.add('score-visible');
+
+            const backBtn = document.getElementById('score-back-btn');
+            const victBtn = document.getElementById('victory-btn');
+
+            if(state.score >= 3) {
+                document.getElementById('score-msg').innerText = "Pass!";
+                if(state.curTask < 4) {
+                    document.getElementById('node'+(state.curTask+1)).classList.remove('locked');
+                    backBtn.style.display = "block"; victBtn.style.display = "none";
+                } else {
+                    backBtn.style.display = "none"; victBtn.style.display = "block";
+                }
+            } else {
+                document.getElementById('score-msg').innerText = "Try again!";
+                backBtn.style.display = "block"; victBtn.style.display = "none";
+            }
+            showScreen('screen-score');
+        }
+
+        function showVictory() {
+            document.getElementById('victory-text').innerText = `${state.name}, I'm back to a pookoo again!`;
+            showScreen('screen-adventure');
+            document.getElementById('victory-overlay').style.display = "flex";
+            startConfetti();
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function speak(t) { 
+            const u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; window.speechSynthesis.speak(u); 
+        }
+
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let pieces = [];
+        const colors = ['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#03a9f4','#00bcd4','#009688','#4caf50','#8bc34a','#cddc39','#ffeb3b','#ffc107','#ff9800','#ff5722'];
+
+        function startConfetti() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            for(let i=0; i<150; i++) {
+                pieces.push({
+                    x: Math.random()*canvas.width,
+                    y: Math.random()*canvas.height - canvas.height,
+                    size: Math.random()*10 + 5,
+                    color: colors[Math.floor(Math.random()*colors.length)],
+                    speed: Math.random()*3 + 2,
+                    angle: Math.random()*Math.PI*2
+                });
+            }
+            updateConfetti();
+        }
+
+        function updateConfetti() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            pieces.forEach(p => {
+                p.y += p.speed;
+                p.angle += 0.05;
+                ctx.fillStyle = p.color;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                ctx.restore();
+                if(p.y > canvas.height) p.y = -20;
+            });
+            requestAnimationFrame(updateConfetti);
+        }
+    </script>
+</body>
+</html>
